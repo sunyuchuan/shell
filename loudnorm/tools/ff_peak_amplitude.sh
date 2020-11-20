@@ -40,10 +40,6 @@ function getVolume()
     peak=${tmp%%dB*}
     peak=`echo $peak`
 
-    dif="0.0"
-    eval $(awk 'BEGIN {fs=cos((3.1415926)*(0.5)/((192000)/("'$original_hz'")));fl=(20*log(fs)/log(10));print "dif="'fl'""}')
-    peak=$(echo "($peak)-($dif)" | bc)
-
     mean_new=$(echo "(-6)-($mean)" | bc)
     peak_new=$(echo "(0)-($peak)" | bc)
 
@@ -77,16 +73,9 @@ function loudnorm()
                     muxer="mp4"
                 fi
 
-                result=`ffprobe -i $1/$file 2>&1`
-                tmp=${result#*Audio\:}
-                original_hz=${tmp%%Hz,*}
-                original_hz="$(echo "${original_hz#*\,}" | awk '{printf "%d", $0}')"
+                gain="$(echo "$(getVolume $1/$file)" | bc | awk '{printf "%.3f", $0}')dB"
 
                 filename=$(echo $file | cut -d . -f1)
-                ffmpeg -i $1/$file -ar 192000 -y $2/$filename.wav 1>/dev/null 2>/dev/null
-
-                gain="$(echo "$(getVolume $2/$filename.wav)" | bc | awk '{printf "%.3f", $0}')dB"
-
                 ffmpeg -i $1/$file -af volume=$gain -y $2/$filename.wav 1>/dev/null 2>/dev/null
 
                 end=`date +%s`
