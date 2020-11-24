@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 start=`date +%s`
 
@@ -8,22 +8,22 @@ echo "USAGE: $0 input_dir output_dir target_LUFS, exit"
 exit 1;
 fi
 
-in_path=`realpath $1`
-if [ ! -d $in_path ];then
+in_path=`realpath "$1"`
+if [ ! -d "$in_path" ];then
 echo "USAGE: $1 nonexist, exit"
 exit 1;
 fi
 
-out_path=`realpath $2`
-if [ ! -d $out_path ];then
-    mkdir -p $out_path
+out_path=`realpath "$2"`
+if [ ! -d "$out_path" ];then
+    mkdir -p "$out_path"
 fi
 
 target_LUFS=$3
 
 function getLoudness()
 {
-    result=`ffmpeg -i $1 -af ebur128=framelog=verbose -f null /dev/null 2>&1`
+    result=`ffmpeg -i "$1" -af ebur128=framelog=verbose -f null /dev/null 2>&1`
     tmp=${result#*I\:}
     ret=${tmp%%LUFS*}
 
@@ -32,13 +32,13 @@ function getLoudness()
 
 function loudnorm()
 {
-    for file in `ls $1`
-    do
-        if [ -d "$1/$file" ]; then
-            if [ ! -d "$2/$file"  ];then
-                mkdir -m 777 $2/$file
+    for file in "$1"/*; do
+        file_basename=$(basename "$file")
+        if [ -d "$file" ]; then
+            if [ ! -d "$2/$file_basename" ]; then
+                mkdir -m 777 "$2/$file_basename"
             fi
-            loudnorm $1/$file $2/$file
+            loudnorm "$file" "$2/$file_basename"
         else
             if [ "${file##*.}"x = "mp3"x ]||[ "${file##*.}"x = "MP3"x ] ||
                [ "${file##*.}"x = "mp4"x ]||[ "${file##*.}"x = "MP4"x ] ||
@@ -56,18 +56,18 @@ function loudnorm()
                     muxer="mp4"
                 fi
 
-                loudness=$(getLoudness $1/$file)
+                loudness=$(getLoudness "$file")
                 gain="$(echo "($target_LUFS)-($loudness)" | bc | awk '{printf "%.3f", $0}')dB"
 
-                filename=$(echo $file | cut -d . -f1)
-                ffmpeg -i $1/$file -filter_complex "[0:a]alimiter=level_in=$gain:level_out=1:limit=-1dB:attack=5:release=200:level=disabled[out]" -map "[out]" -y $2/$filename.wav 1>/dev/null 2>/dev/null
+                filename=$(echo "$file_basename" | cut -d . -f1)
+                ffmpeg -i "$file" -filter_complex "[0:a]alimiter=level_in=$gain:level_out=1:limit=-1dB:attack=5:release=200:level=disabled[out]" -map "[out]" -y "$2/$filename.wav" 1>/dev/null 2>/dev/null
 
                 end=`date +%s`
                 dif=$[ end - start ]
-                echo "ebur128 file name ---> $1/$file gain: $gain cost time $dif sec"
+                echo "ebur128 file name ---> $file gain: $gain cost time $dif sec"
             fi
         fi
     done
 }
 
-loudnorm $in_path $out_path
+loudnorm "$in_path" "$out_path"
