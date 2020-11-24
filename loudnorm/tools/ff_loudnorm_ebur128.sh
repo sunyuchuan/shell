@@ -43,18 +43,10 @@ function loudnorm()
             if [ "${file##*.}"x = "mp3"x ]||[ "${file##*.}"x = "MP3"x ] ||
                [ "${file##*.}"x = "mp4"x ]||[ "${file##*.}"x = "MP4"x ] ||
                [ "${file##*.}"x = "m4a"x ]||[ "${file##*.}"x = "M4A"x ] ||
-               [ "${file##*.}"x = "aac"x ]||[ "${file##*.}"x = "AAC"x ] ;then
+               [ "${file##*.}"x = "aac"x ]||[ "${file##*.}"x = "AAC"x ] ||
+               [ "${file##*.}"x = "wav"x ]||[ "${file##*.}"x = "WAV"x ]
+            then
                 start=`date +%s`
-
-                if [ "${file##*.}"x = "mp3"x ]||[ "${file##*.}"x = "MP3"x ];then
-                    codec="libmp3lame"
-                    muxer="mp3"
-                fi
-                if [ "${file##*.}"x = "mp4"x ]||[ "${file##*.}"x = "MP4"x ]||
-                   [ "${file##*.}"x = "m4a"x ]||[ "${file##*.}"x = "M4A"x ];then
-                    codec="aac"
-                    muxer="mp4"
-                fi
 
                 loudness=$(getLoudness "$file")
                 gain="$(echo "($target_LUFS)-($loudness)" | bc | awk '{printf "%.3f", $0}')dB"
